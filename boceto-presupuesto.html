@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FixMatch · Boceto G2F-17 · Formulario de presupuesto</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f0f2f5; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1f2933; }
+  main { max-width: 640px; margin: 32px auto; background: #fff; padding: 32px; border-radius: 10px; border: 1px solid #cbd2d9; }
+  .meta { font-size: 13px; color: #52606d; font-weight: 500; }
+  h1 { margin: 4px 0 8px; font-size: 28px; }
+  p.hint { margin: 0 0 20px; font-size: 14px; color: #3e4c59; }
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+  label { font-size: 14px; font-weight: 600; }
+  input, textarea { font: inherit; font-size: 16px; padding: 12px 14px; border: 1.5px solid #616e7c; border-radius: 6px; }
+  textarea { height: 90px; resize: vertical; }
+  .invalid { border-color: #b42318; }
+  .error { font-size: 13px; color: #b42318; min-height: 16px; }
+  .total { display: flex; justify-content: space-between; align-items: center; background: #e4e7eb; border-radius: 8px; padding: 14px 18px; margin: 8px 0 20px; }
+  .total strong { font-size: 24px; }
+  .actions { display: flex; gap: 12px; }
+  button { font: inherit; font-size: 16px; font-weight: 600; height: 48px; padding: 0 26px; border-radius: 6px; cursor: pointer; }
+  .primary { background: #1f2933; color: #fff; border: 0; }
+  .secondary { background: #fff; color: #1f2933; border: 1.5px solid #616e7c; font-weight: 500; }
+  .ok { margin-top: 16px; font-size: 14px; color: #0b6b3a; min-height: 20px; }
+  footer { margin-top: 20px; padding-top: 12px; border-top: 1px dashed #9aa5b1; font-size: 13px; color: #3e4c59; }
+</style>
+</head>
+<body>
+<main>
+  <div class="meta">Solicitud #[N°] · Cliente: [NOMBRE DEL CLIENTE]</div>
+  <h1>Enviar presupuesto</h1>
+  <p class="hint">Las cuatro partidas son obligatorias. El total se calcula solo.</p>
+
+  <form id="form" novalidate>
+    <div class="field">
+      <label for="mo">1. Mano de obra (S/) *</label>
+      <input id="mo" inputmode="decimal" placeholder="0.00" data-money>
+      <span class="error" id="e-mo"></span>
+    </div>
+    <div class="field">
+      <label for="mat">2. Materiales (S/) *</label>
+      <input id="mat" inputmode="decimal" placeholder="0.00" data-money>
+      <span class="error" id="e-mat"></span>
+    </div>
+    <div class="field">
+      <label for="vis">3. Visita técnica (S/) *</label>
+      <input id="vis" inputmode="decimal" placeholder="0.00" data-money>
+      <span class="error" id="e-vis"></span>
+    </div>
+    <div class="field">
+      <label for="exc">4. Exclusiones: qué NO incluye este precio *</label>
+      <textarea id="exc" placeholder="Ej.: [ejemplo: no incluye pintura ni retiro de escombros]"></textarea>
+      <span class="error" id="e-exc"></span>
+    </div>
+
+    <div class="total">
+      <span>Total (suma de las 3 partidas con monto)</span>
+      <strong id="total">S/ 0.00</strong>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="primary">Enviar presupuesto</button>
+      <button type="reset" class="secondary" id="reset">Cancelar</button>
+    </div>
+    <div class="ok" id="ok" role="status"></div>
+  </form>
+
+  <footer>Boceto G2F-17 (H3). Si falta una partida, no se envía y se marca en qué campo falta. Supuesto: los 3 montos son números en soles y las exclusiones son texto libre.</footer>
+</main>
+
+<script>
+  const money = [...document.querySelectorAll("[data-money]")];
+  const exc = document.getElementById("exc");
+  const totalEl = document.getElementById("total");
+  const okEl = document.getElementById("ok");
+
+  const parse = v => { const n = parseFloat(String(v).replace(",", ".")); return isNaN(n) ? null : n; };
+
+  function updateTotal() {
+    const sum = money.reduce((s, el) => s + (parse(el.value) ?? 0), 0);
+    totalEl.textContent = "S/ " + sum.toFixed(2);
+  }
+  money.forEach(el => el.addEventListener("input", updateTotal));
+
+  function setError(el, msg) {
+    document.getElementById("e-" + el.id).textContent = msg;
+    el.classList.toggle("invalid", !!msg);
+  }
+
+  document.getElementById("form").addEventListener("submit", e => {
+    e.preventDefault();
+    okEl.textContent = "";
+    let valid = true;
+    money.forEach(el => {
+      const n = parse(el.value);
+      if (n === null || n < 0) { setError(el, "Falta este monto (número mayor o igual a 0)."); valid = false; }
+      else setError(el, "");
+    });
+    if (!exc.value.trim()) { setError(exc, "Indica qué no incluye el precio."); valid = false; }
+    else setError(exc, "");
+    if (valid) okEl.textContent = "Presupuesto listo para enviar (boceto: no se envía a ningún servidor).";
+  });
+
+  document.getElementById("reset").addEventListener("click", () => {
+    setTimeout(() => { [...money, exc].forEach(el => setError(el, "")); okEl.textContent = ""; updateTotal(); }, 0);
+  });
+</script>
+</body>
+</html>
